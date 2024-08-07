@@ -4,12 +4,12 @@
 #include "HashNode.h"
 #include "DynamicArray.h"
 #include "PrimeHelper.h"
-#include <utility> // For std::move
+#include <memory>
 
 template<typename K, typename V>
 class UnionFind {
 private:
-    DynamicArray<HashNode<K, V>*> table;
+    DynamicArray<std::unique_ptr<HashNode<K, V>>> table;
     int capacity;
     int size;
 
@@ -22,7 +22,7 @@ public:
     UnionFind(int capacity = 16);
     ~UnionFind();
 
-    bool insert(const K& key, const V& value);
+    bool insert(const K& key, std::unique_ptr<V> value);
     bool remove(const K& key);
     V* find(const K& key);
     bool unite(const K& key1, const K& key2);
@@ -38,14 +38,7 @@ UnionFind<K, V>::UnionFind(int capacity) : table(PrimeHelper::next_prime(capacit
 
 template<typename K, typename V>
 UnionFind<K, V>::~UnionFind() {
-    for (int i = 0; i < capacity; ++i) {
-        HashNode<K, V>* entry = table[i];
-        while (entry != nullptr) {
-            HashNode<K, V>* prev = entry;
-            entry = entry->next;
-            delete prev;
-        }
-    }
+    // Unique_ptr automatically cleans up the memory
 }
 
 template<typename K, typename V>
@@ -58,16 +51,16 @@ void UnionFind<K, V>::resize_table() {
     int old_capacity = capacity;
     capacity = PrimeHelper::next_prime(capacity * 2);
     
-    DynamicArray<HashNode<K, V>*> new_table(capacity);
+    DynamicArray<std::unique_ptr<HashNode<K, V>>> new_table(capacity);
 
     for (int i = 0; i < old_capacity; ++i) {
-        HashNode<K, V>* entry = table[i];
+        std::unique_ptr<HashNode<K, V>> entry = std::move(table[i]);
         while (entry != nullptr) {
             HashNode<K, V>* next = entry->next;
             int new_hash_value = hash_function(entry->key);
-            entry->next = new_table[new_hash_value];
-            new_table[new_hash_value] = entry;
-            entry = next;
+            entry->next = new_table[new_hash_value].release();
+            new_table[new_hash_value] = std::move(entry);
+            entry.reset(next);
         }
     }
 
@@ -85,7 +78,7 @@ HashNode<K, V>* UnionFind<K, V>::find_root(HashNode<K, V>* node) {
 template<typename K, typename V>
 HashNode<K, V>* UnionFind<K, V>::find_node(const K& key) {
     int hash_value = hash_function(key);
-    HashNode<K, V>* entry = table[hash_value];
+    HashNode<K, V>* entry = table[hash_value].get();
 
     while (entry != nullptr && entry->key != key) {
         entry = entry->next;
@@ -95,15 +88,15 @@ HashNode<K, V>* UnionFind<K, V>::find_node(const K& key) {
 }
 
 template<typename K, typename V>
-bool UnionFind<K, V>::insert(const K& key, const V& value) {
+bool UnionFind<K, V>::insert(const K& key, std::unique_ptr<V> value) {
     if (size >= capacity) {
         resize_table();
     }
 
     int hash_value = hash_function(key);
-    HashNode<K, V>* new_node = new HashNode<K, V>(key, value);
-    new_node->next = table[hash_value];
-    table[hash_value] = new_node;
+    auto new_node = std::unique_ptr<HashNode<K, V>>(new HashNode<K, V>(key, std::move(value)));
+    new_node->next = table[hash_value].release();
+    table[hash_value] = std::move(new_node);
 
     ++size;
     return true;
@@ -112,12 +105,12 @@ bool UnionFind<K, V>::insert(const K& key, const V& value) {
 template<typename K, typename V>
 bool UnionFind<K, V>::remove(const K& key) {
     int hash_value = hash_function(key);
-    HashNode<K, V>* entry = table[hash_value];
+    std::unique_ptr<HashNode<K, V>> entry = std::move(table[hash_value]);
     HashNode<K, V>* prev = nullptr;
 
     while (entry != nullptr && entry->key != key) {
-        prev = entry;
-        entry = entry->next;
+        prev = entry.get();
+        entry.reset(entry->next);
     }
 
     if (entry == nullptr) {
@@ -125,12 +118,11 @@ bool UnionFind<K, V>::remove(const K& key) {
     }
 
     if (prev == nullptr) {
-        table[hash_value] = entry->next;
+        table[hash_value].reset(entry->next);
     } else {
         prev->next = entry->next;
     }
 
-    delete entry;
     --size;
     return true;
 }
@@ -139,7 +131,7 @@ template<typename K, typename V>
 V* UnionFind<K, V>::find(const K& key) {
     HashNode<K, V>* node = find_node(key);
     if (node != nullptr) {
-        return &node->value;
+        return node->value.get();
     }
     return nullptr;
 }
