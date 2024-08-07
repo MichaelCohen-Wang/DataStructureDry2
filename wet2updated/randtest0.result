@@ -1,0 +1,33 @@
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_pirate: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+add_fleet: SUCCESS
+add_fleet: SUCCESS
+add_pirate: SUCCESS
+num_ships_for_fleet: FAILURE
+pirate_argument: SUCCESS
+pirate_argument: SUCCESS
+get_pirate_money: SUCCESS, 0
+add_pirate: FAILURE
+pay_pirate: SUCCESS
+num_ships_for_fleet: SUCCESS, 1
+unite_fleets: SUCCESS

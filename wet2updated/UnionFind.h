@@ -4,6 +4,7 @@
 #include "HashNode.h"
 #include "DynamicArray.h"
 #include "PrimeHelper.h"
+#include <utility> // For std::move
 
 template<typename K, typename V>
 class UnionFind {
@@ -13,6 +14,7 @@ private:
     int size;
 
     int hash_function(const K& key) const;
+    void resize_table();
     HashNode<K, V>* find_root(HashNode<K, V>* node);
     HashNode<K, V>* find_node(const K& key);
 
@@ -28,8 +30,7 @@ public:
 };
 
 template<typename K, typename V>
-UnionFind<K, V>::UnionFind(int capacity) : table(), capacity(PrimeHelper::next_prime(capacity)), size(0) {
-    table.resize(capacity);
+UnionFind<K, V>::UnionFind(int capacity) : table(PrimeHelper::next_prime(capacity)), capacity(PrimeHelper::next_prime(capacity)), size(0) {
     for (int i = 0; i < capacity; ++i) {
         table.push_back(nullptr);
     }
@@ -50,6 +51,27 @@ UnionFind<K, V>::~UnionFind() {
 template<typename K, typename V>
 int UnionFind<K, V>::hash_function(const K& key) const {
     return (key * 2654435761) % capacity;  // Simple hash function using multiplication method
+}
+
+template<typename K, typename V>
+void UnionFind<K, V>::resize_table() {
+    int old_capacity = capacity;
+    capacity = PrimeHelper::next_prime(capacity * 2);
+    
+    DynamicArray<HashNode<K, V>*> new_table(capacity);
+
+    for (int i = 0; i < old_capacity; ++i) {
+        HashNode<K, V>* entry = table[i];
+        while (entry != nullptr) {
+            HashNode<K, V>* next = entry->next;
+            int new_hash_value = hash_function(entry->key);
+            entry->next = new_table[new_hash_value];
+            new_table[new_hash_value] = entry;
+            entry = next;
+        }
+    }
+
+    table = std::move(new_table);
 }
 
 template<typename K, typename V>
@@ -74,6 +96,10 @@ HashNode<K, V>* UnionFind<K, V>::find_node(const K& key) {
 
 template<typename K, typename V>
 bool UnionFind<K, V>::insert(const K& key, const V& value) {
+    if (size >= capacity) {
+        resize_table();
+    }
+
     int hash_value = hash_function(key);
     HashNode<K, V>* new_node = new HashNode<K, V>(key, value);
     new_node->next = table[hash_value];

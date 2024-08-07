@@ -13,17 +13,23 @@ private:
 
 public:
     DynamicArray();
+    explicit DynamicArray(int initial_capacity);
     ~DynamicArray();
 
     void push_back(const T& value);
     T& operator[](int index);
     int get_size() const;
 
-    void resize(int new_capacity); // Move this to public
+    void resize(int new_capacity);
 };
 
 template<typename T>
 DynamicArray<T>::DynamicArray() : data(nullptr), capacity(0), size(0) {}
+
+template<typename T>
+DynamicArray<T>::DynamicArray(int initial_capacity) : capacity(initial_capacity), size(0) {
+    data = new T[capacity];
+}
 
 template<typename T>
 DynamicArray<T>::~DynamicArray() {
@@ -35,7 +41,7 @@ void DynamicArray<T>::resize(int new_capacity) {
     new_capacity = PrimeHelper::next_prime(new_capacity);
     T* new_data = new T[new_capacity];
     for (int i = 0; i < size; ++i) {
-        new_data[i] = data[i];
+        new_data[i] = std::move(data[i]);
     }
     delete[] data;
     data = new_data;
@@ -53,8 +59,7 @@ void DynamicArray<T>::push_back(const T& value) {
 template<typename T>
 T& DynamicArray<T>::operator[](int index) {
     if (index < 0 || index >= size) {
-        //need to see why this is happening
-        //throw std::out_of_range("Index out of range");
+       //throw std::out_of_range("Index out of range");
     }
     return data[index];
 }
